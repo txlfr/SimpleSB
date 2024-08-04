@@ -13,30 +13,21 @@ delay = config.get("Delay")
 
 bot = commands.Bot(command_prefix=prefix, self_bot=True)
 
-auto_skull_users = set()
-auto_sob_users = set()
+auto_reaction_users = {}
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 @bot.event
 async def on_message(message):
-    if message.author.id in auto_skull_users:
-        emoji = '☠'
+    if message.author.id in auto_reaction_users:
+        emoji = auto_reaction_users[message.author.id]
         try:
             await message.add_reaction(emoji)
         except discord.errors.Forbidden:
-            pass  
-    
-    if message.author.id in auto_sob_users:
-        emoji = '😭'
-        try:
-            await message.add_reaction(emoji)
-        except discord.errors.Forbidden:
-            pass  
+            pass
     
     await bot.process_commands(message)
-
 
 async def delete_after(message, delay):
     await asyncio.sleep(delay)
@@ -49,27 +40,16 @@ async def delete_after(message, delay):
         logger.error(f"No permission to delete message {message.id}")
     except Exception as e:
         logger.error(f"Failed to delete message {message.id}: {str(e)}")
-    
 
 @bot.command()
-async def removereactions(ctx, user: discord.User):
-    removed = False
-    
-    if user.id in auto_skull_users:
-        auto_skull_users.remove(user.id)
-        msg = await ctx.send(f"Removed auto skulling for {user.mention}")
-        asyncio.create_task(delete_after(msg, delay)) 
-        removed = True
-    
-    if user.id in auto_sob_users:
-        auto_sob_users.remove(user.id)
-        msg = await ctx.send(f"Removed auto sobbing for {user.mention}")
-        asyncio.create_task(delete_after(msg, delay))  
-        removed = True
-    
-    if not removed:
-        msg = await ctx.send(f"{user.mention} was not in any reaction list")
-        asyncio.create_task(delete_after(msg, delay))  
+async def removereaction(ctx, user: discord.User):
+    if user.id in auto_reaction_users:
+        del auto_reaction_users[user.id]
+        msg = await ctx.send(f"Removed auto reaction for {user.mention}")
+        asyncio.create_task(delete_after(msg, delay))
+    else:
+        msg = await ctx.send(f"{user.mention} was not in the reaction list")
+        asyncio.create_task(delete_after(msg, delay))
     
     await ctx.message.delete()
 
@@ -80,17 +60,10 @@ async def ping(ctx):
     asyncio.create_task(delete_after(msg, delay))
 
 @bot.command()
-async def autoskull(ctx, user: discord.User):
-    auto_skull_users.add(user.id)
+async def autoreact(ctx, user: discord.User, emoji: str):
+    auto_reaction_users[user.id] = emoji
     await ctx.message.delete()
-    msg = await ctx.send(f"Auto skulling for {user.mention}")
-    asyncio.create_task(delete_after(msg, delay))
-
-@bot.command()
-async def autosob(ctx, user: discord.User):
-    auto_sob_users.add(user.id)
-    await ctx.message.delete()
-    msg = await ctx.send(f"Auto sobbing for {user.mention}")
+    msg = await ctx.send(f"Auto reacting with {emoji} for {user.mention}")
     asyncio.create_task(delete_after(msg, delay))
 
 @bot.command()
