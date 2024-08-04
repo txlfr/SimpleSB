@@ -3,6 +3,5 @@
 run ``` pip install discord.py-self ```
 # commands:
 - Purge
-- Auto Skull
-- Auto Sob
+- Auto Reaction
 - Ping 
